@@ -3,6 +3,9 @@
     "name": "boiler_plate_expo",
     "slug": "boiler_plate_expo",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "boilerplateexpo",

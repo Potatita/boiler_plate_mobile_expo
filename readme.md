@@ -172,6 +172,70 @@ fresh anonymous identity.
    assuming the Supabase UUID is always the original ID. Never trust client entitlement state for
    server-protected data.
 
+## Over-the-air updates (EAS Update)
+
+Each app generated from this template must use its **own EAS project**. The template intentionally has no
+`extra.eas.projectId` or `updates.url`; run the setup below from the generated app's root, not from this template.
+
+1. Check the Expo account and sign in only if needed. Create a project for this app or link its existing project:
+
+   ```bash
+   pnpm dlx eas-cli@latest whoami
+   pnpm dlx eas-cli@latest login # only if whoami is not the intended account
+
+   pnpm dlx eas-cli@latest init # create or link interactively
+   # Or link a specific existing project:
+   pnpm dlx eas-cli@latest init --id <PROJECT_ID>
+   ```
+
+2. Configure EAS Update after linking:
+
+   ```bash
+   pnpm dlx eas-cli@latest update:configure
+   ```
+
+   This writes the generated app's project-specific EAS ID and update URL into its app config. Keep those values
+   in that app's repository; do not copy them back into the reusable template.
+
+3. Add the app's `EXPO_PUBLIC_*` variables to the EAS **preview** and **production** environments (see the
+   [environment variables above](#environment-variables)). For example:
+
+   ```bash
+   pnpm dlx eas-cli@latest env:set preview --name EXPO_PUBLIC_SUPABASE_URL --value "<preview-url>" --visibility plaintext
+   pnpm dlx eas-cli@latest env:set production --name EXPO_PUBLIC_SUPABASE_URL --value "<production-url>" --visibility plaintext
+   ```
+
+   Repeat for the other variables this app needs. `EXPO_PUBLIC_*` values are embedded in the JavaScript bundle,
+   so never put secrets in them. On SDK 55 and later, `eas update` requires `--environment`; it selects the EAS
+   variables used while bundling. EAS Build selects an environment from the build profile; if you customize
+   profiles, set their `environment` explicitly so the build and its updates use the intended values. If promoting
+   the exact preview update to production, its bundle-time values must also be correct for production. Keep those
+   values compatible across environments, or publish and test a separate update using the production environment
+   instead of republishing the preview bundle.
+
+4. Build and install an internal preview binary, then publish a JavaScript/assets update to its channel:
+
+   ```bash
+   pnpm dlx eas-cli@latest build --profile preview --platform all
+   pnpm dlx eas-cli@latest update --channel preview --message "Preview OTA" --environment preview
+   ```
+
+   Install the build from its EAS link on a device. Force-close and reopen the release build (up to twice) to
+   download and apply the update, then verify the changed behavior.
+
+5. After testing, promote that same update to production or roll back a bad update:
+
+   ```bash
+   pnpm dlx eas-cli@latest update:republish --channel preview --destination-channel production --message "Promote tested preview"
+   pnpm dlx eas-cli@latest update:rollback # interactive rollback to an existing or embedded update
+   ```
+
+OTA is for compatible JavaScript and asset changes. Native dependency, permission, or native configuration changes
+need a new native build distributed through the stores. This app uses `runtimeVersion.policy: "appVersion"`, so
+increment `expo.version` for a new native app release to give it a new runtime version.
+
+References: [Expo SDK 57 `expo-updates`](https://docs.expo.dev/versions/v57.0.0/sdk/updates/), [EAS Update setup](https://docs.expo.dev/eas-update/getting-started/), [deployment and rollback](https://docs.expo.dev/eas-update/deployment/), [EAS CLI commands](https://docs.expo.dev/eas/cli/), and [EAS environment variables](https://docs.expo.dev/eas/environment-variables/usage/).
+
 ## Get a fresh project
 
 When you're ready, run:
